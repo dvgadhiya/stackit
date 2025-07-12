@@ -7,6 +7,8 @@ import dotenv from "dotenv";
 import {answerRoutes} from "./routes/answer.route.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import commentRoutes from "./routes/comment.route.js";
+
 
 dotenv.config({ path: './.env' });
 
@@ -27,6 +29,7 @@ app.use("/api/auth", authRoutes);
 app.use(verifyToken);
 app.use("/api/question", QuestionRoutes);
 app.use("/api/answer", answerRoutes);
+app.use("/api/comment", commentRoutes);
 
 mongoose.connect('mongodb://localhost:27017/stackit')
   .then(() => {
