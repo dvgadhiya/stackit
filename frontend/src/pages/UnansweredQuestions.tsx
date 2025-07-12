@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Filter, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,14 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import QuestionCard from "@/components/QuestionCard";
 
+import axios from "axios";
+
 interface UnansweredQuestion {
-  id: string;
+  id?: string;
+  _id?: string;
   title: string;
   content: string;
   author: {
     name: string;
     username: string;
     avatar: string;
+    reputation?: number;
   };
   tags: string[];
   votes: number;
@@ -23,90 +27,32 @@ interface UnansweredQuestion {
   createdAt: string;
 }
 
-const mockUnansweredQuestions: UnansweredQuestion[] = [
-  {
-    id: '1',
-    title: 'How to implement real-time collaboration in React?',
-    content: 'I need to build a collaborative document editor similar to Google Docs. What are the best approaches for implementing real-time collaboration features using React and WebSocket?',
-    author: {
-      name: 'Alice Developer',
-      username: 'alice_dev',
-      avatar: ''
-    },
-    tags: ['react', 'websocket', 'real-time', 'collaboration'],
-    votes: 8,
-    answers: 0,
-    views: 156,
-    bounty: 50,
-    createdAt: '2024-01-16T10:30:00Z'
-  },
-  {
-    id: '2',
-    title: 'TypeScript generic constraints with conditional types',
-    content: 'I\'m struggling with advanced TypeScript patterns. How can I create generic constraints that work with conditional types for complex API response mapping?',
-    author: {
-      name: 'Bob Smith',
-      username: 'bob_smith',
-      avatar: ''
-    },
-    tags: ['typescript', 'generics', 'conditional-types', 'advanced'],
-    votes: 12,
-    answers: 0,
-    views: 289,
-    createdAt: '2024-01-15T14:20:00Z'
-  },
-  {
-    id: '3',
-    title: 'Optimizing large dataset rendering in React virtualization',
-    content: 'Working with a dataset of 100k+ items that need to be rendered in a table. Even with react-window, performance is poor. Looking for advanced optimization techniques.',
-    author: {
-      name: 'Carol Engineer',
-      username: 'carol_eng',
-      avatar: ''
-    },
-    tags: ['react', 'performance', 'virtualization', 'optimization'],
-    votes: 15,
-    answers: 0,
-    views: 445,
-    bounty: 100,
-    createdAt: '2024-01-14T09:15:00Z'
-  },
-  {
-    id: '4',
-    title: 'Custom React hook for complex form validation',
-    content: 'Need to create a reusable hook for handling complex form validation with nested objects, async validation, and conditional fields. Current solutions feel too heavy.',
-    author: {
-      name: 'David Wilson',
-      username: 'david_w',
-      avatar: ''
-    },
-    tags: ['react', 'hooks', 'forms', 'validation'],
-    votes: 6,
-    answers: 0,
-    views: 203,
-    createdAt: '2024-01-13T16:45:00Z'
-  },
-  {
-    id: '5',
-    title: 'Microfrontend architecture with Module Federation',
-    content: 'Implementing microfrontends using Webpack Module Federation. Having issues with shared dependencies and state management across different applications.',
-    author: {
-      name: 'Eva Martinez',
-      username: 'eva_m',
-      avatar: ''
-    },
-    tags: ['microfrontends', 'webpack', 'module-federation', 'architecture'],
-    votes: 9,
-    answers: 0,
-    views: 334,
-    createdAt: '2024-01-12T11:30:00Z'
-  }
-];
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
 
 const UnansweredQuestions = () => {
-  const [questions, setQuestions] = useState(mockUnansweredQuestions);
+  const [questions, setQuestions] = useState<UnansweredQuestion[]>([]);
   const [sortBy, setSortBy] = useState('newest');
   const [filterBy, setFilterBy] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUnanswered = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await axios.get(`${API_URL}/questions/unanswered`, { withCredentials: true });
+        setQuestions(res.data.questions || []);
+      } catch (err: any) {
+        setError(err?.response?.data?.message || "Failed to load unanswered questions");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUnanswered();
+  }, []);
 
   const handleSort = (value: string) => {
     setSortBy(value);
@@ -255,7 +201,26 @@ const UnansweredQuestions = () => {
 
         {/* Questions List */}
         <div className="space-y-4">
-          {filteredQuestions.length === 0 ? (
+          {loading ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+                  <h3 className="text-lg font-semibold mb-2">Loading unanswered questions...</h3>
+                </div>
+              </CardContent>
+            </Card>
+          ) : error ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Clock className="w-12 h-12 text-red-500 mx-auto mb-4 animate-bounce" />
+                  <h3 className="text-lg font-semibold mb-2 text-red-600">Error loading questions</h3>
+                  <p className="text-red-500 font-medium">{error}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : filteredQuestions.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center py-8">
@@ -271,15 +236,18 @@ const UnansweredQuestions = () => {
               </CardContent>
             </Card>
           ) : (
-            filteredQuestions.map((question) => (
-              <QuestionCard key={question.id} question={{
-                ...question,
-                author: {
-                  ...question.author,
-                  reputation: 0 // Default reputation for unanswered questions display
-                }
-              }} showBounty={true} />
-            ))
+            filteredQuestions.map((question) => {
+              const qid = question.id || question._id;
+              return (
+                <QuestionCard key={qid} question={{
+                  ...question,
+                  author: {
+                    ...question.author,
+                    reputation: question.author.reputation || 0
+                  }
+                }} showBounty={true} />
+              );
+            })
           )}
         </div>
 

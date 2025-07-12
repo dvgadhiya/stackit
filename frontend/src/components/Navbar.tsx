@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/context/auth";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Bell, User, ChevronDown, MessageSquare, Tag, Users, TrendingUp, Home, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Mock auth state
+  const { user, logout, loading } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,8 +19,8 @@ const Navbar = () => {
     }
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
@@ -83,7 +84,7 @@ const Navbar = () => {
               </Link>
             </Button>
 
-            {isLoggedIn ? (
+            {user ? (
               <>
                 {/* Notifications */}
                 <DropdownMenu>
@@ -127,6 +128,7 @@ const Navbar = () => {
                       <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                       </div>
+                      <span className="font-medium text-sm max-w-[100px] truncate">{user.username}</span>
                       <ChevronDown className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>

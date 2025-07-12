@@ -119,7 +119,7 @@ const QuestionCard = ({ question, showVoting = true, showBounty = false }: Quest
           {/* Content Section */}
           <div className="flex-1 min-w-0">
             <Link 
-              to={`/questions/${question.id}`}
+              to={`/questions/${question.id || question._id}`}
               className="block group"
             >
               <div className="flex items-center justify-between mb-2">

@@ -33,9 +33,10 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 
 //verify token to get roles 
-app.use(verifyToken);
+
 app.use("/api/question", QuestionRoutes);
 app.use("/api/answer", answerRoutes);
+app.use(verifyToken);
 app.use("/api/comment", commentRoutes);
 
 mongoose.connect('mongodb://localhost:27017/stackit')

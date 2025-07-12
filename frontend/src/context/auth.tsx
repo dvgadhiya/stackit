@@ -22,30 +22,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check session on mount
+  // Check session on mount and expose for login
+  const checkSession = async () => {
+    try {
+      const res = await axios.get(
+        import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/me` : "http://localhost:3000/api/auth/me",
+        { withCredentials: true }
+      );
+      setUser({
+        id: res.data.user.id,
+        username: res.data.user.username,
+        email: res.data.user.email,
+        role: res.data.user.role
+      });
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const res = await axios.get("http://localhost:3000/api/auth/me", { withCredentials: true });
-        setUser(res.data.user);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
     checkSession();
   }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/auth/login",
+      await axios.post(
+        import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/login` : "http://localhost:3000/api/auth/login",
         { email, password },
         { withCredentials: true }
       );
-      setUser(res.data.user);
+      await checkSession();
+    } catch (error) {
+      setUser(null);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -54,7 +65,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     setLoading(true);
     try {
-      await axios.post("http://localhost:3000/api/auth/logout", {}, { withCredentials: true });
+      await axios.post(
+        import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/logout` : "http://localhost:3000/api/auth/logout",
+        {},
+        { withCredentials: true }
+      );
       setUser(null);
     } finally {
       setLoading(false);
@@ -65,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await axios.post(
-        "http://localhost:3000/api/auth/register",
+        import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/auth/register` : "http://localhost:3000/api/auth/register",
         { username, email, password },
         { withCredentials: true }
       );
