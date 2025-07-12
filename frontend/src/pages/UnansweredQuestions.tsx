@@ -1,0 +1,302 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, Filter, Clock, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import QuestionCard from "@/components/QuestionCard";
+
+interface UnansweredQuestion {
+  id: string;
+  title: string;
+  content: string;
+  author: {
+    name: string;
+    username: string;
+    avatar: string;
+  };
+  tags: string[];
+  votes: number;
+  answers: number;
+  views: number;
+  bounty?: number;
+  createdAt: string;
+}
+
+const mockUnansweredQuestions: UnansweredQuestion[] = [
+  {
+    id: '1',
+    title: 'How to implement real-time collaboration in React?',
+    content: 'I need to build a collaborative document editor similar to Google Docs. What are the best approaches for implementing real-time collaboration features using React and WebSocket?',
+    author: {
+      name: 'Alice Developer',
+      username: 'alice_dev',
+      avatar: ''
+    },
+    tags: ['react', 'websocket', 'real-time', 'collaboration'],
+    votes: 8,
+    answers: 0,
+    views: 156,
+    bounty: 50,
+    createdAt: '2024-01-16T10:30:00Z'
+  },
+  {
+    id: '2',
+    title: 'TypeScript generic constraints with conditional types',
+    content: 'I\'m struggling with advanced TypeScript patterns. How can I create generic constraints that work with conditional types for complex API response mapping?',
+    author: {
+      name: 'Bob Smith',
+      username: 'bob_smith',
+      avatar: ''
+    },
+    tags: ['typescript', 'generics', 'conditional-types', 'advanced'],
+    votes: 12,
+    answers: 0,
+    views: 289,
+    createdAt: '2024-01-15T14:20:00Z'
+  },
+  {
+    id: '3',
+    title: 'Optimizing large dataset rendering in React virtualization',
+    content: 'Working with a dataset of 100k+ items that need to be rendered in a table. Even with react-window, performance is poor. Looking for advanced optimization techniques.',
+    author: {
+      name: 'Carol Engineer',
+      username: 'carol_eng',
+      avatar: ''
+    },
+    tags: ['react', 'performance', 'virtualization', 'optimization'],
+    votes: 15,
+    answers: 0,
+    views: 445,
+    bounty: 100,
+    createdAt: '2024-01-14T09:15:00Z'
+  },
+  {
+    id: '4',
+    title: 'Custom React hook for complex form validation',
+    content: 'Need to create a reusable hook for handling complex form validation with nested objects, async validation, and conditional fields. Current solutions feel too heavy.',
+    author: {
+      name: 'David Wilson',
+      username: 'david_w',
+      avatar: ''
+    },
+    tags: ['react', 'hooks', 'forms', 'validation'],
+    votes: 6,
+    answers: 0,
+    views: 203,
+    createdAt: '2024-01-13T16:45:00Z'
+  },
+  {
+    id: '5',
+    title: 'Microfrontend architecture with Module Federation',
+    content: 'Implementing microfrontends using Webpack Module Federation. Having issues with shared dependencies and state management across different applications.',
+    author: {
+      name: 'Eva Martinez',
+      username: 'eva_m',
+      avatar: ''
+    },
+    tags: ['microfrontends', 'webpack', 'module-federation', 'architecture'],
+    votes: 9,
+    answers: 0,
+    views: 334,
+    createdAt: '2024-01-12T11:30:00Z'
+  }
+];
+
+const UnansweredQuestions = () => {
+  const [questions, setQuestions] = useState(mockUnansweredQuestions);
+  const [sortBy, setSortBy] = useState('newest');
+  const [filterBy, setFilterBy] = useState('all');
+
+  const handleSort = (value: string) => {
+    setSortBy(value);
+    const sorted = [...questions].sort((a, b) => {
+      switch (value) {
+        case 'votes':
+          return b.votes - a.votes;
+        case 'views':
+          return b.views - a.views;
+        case 'bounty':
+          return (b.bounty || 0) - (a.bounty || 0);
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default: // newest
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+    setQuestions(sorted);
+  };
+
+  const filteredQuestions = questions.filter(question => {
+    if (filterBy === 'bounty') {
+      return question.bounty && question.bounty > 0;
+    }
+    return true;
+  });
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/profile">
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Unanswered Questions</h1>
+              <p className="text-muted-foreground">
+                Help the community by answering these {filteredQuestions.length} questions
+              </p>
+            </div>
+          </div>
+          <Button asChild>
+            <Link to="/ask">Ask Question</Link>
+          </Button>
+        </div>
+
+        {/* Filters and Sort */}
+        <Card className="mb-6">
+          <CardContent className="pt-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Filter:</span>
+                  <Select value={filterBy} onValueChange={setFilterBy}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="bounty">With Bounty</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium">Sort by:</span>
+                <Select value={sortBy} onValueChange={handleSort}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-4 h-4" />
+                        <span>Newest</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="oldest">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-4 h-4" />
+                        <span>Oldest</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="votes">
+                      <div className="flex items-center space-x-2">
+                        <TrendingUp className="w-4 h-4" />
+                        <span>Most Votes</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="views">Most Views</SelectItem>
+                    <SelectItem value="bounty">Highest Bounty</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">{filteredQuestions.length}</div>
+                <div className="text-sm text-muted-foreground">Total Questions</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-success">
+                  {filteredQuestions.filter(q => q.bounty).length}
+                </div>
+                <div className="text-sm text-muted-foreground">With Bounty</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-accent">
+                  {filteredQuestions.reduce((sum, q) => sum + (q.bounty || 0), 0)}
+                </div>
+                <div className="text-sm text-muted-foreground">Total Bounty</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold">
+                  {Math.round(filteredQuestions.reduce((sum, q) => sum + q.views, 0) / filteredQuestions.length)}
+                </div>
+                <div className="text-sm text-muted-foreground">Avg Views</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Questions List */}
+        <div className="space-y-4">
+          {filteredQuestions.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No unanswered questions</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Great! It looks like all questions have been answered.
+                  </p>
+                  <Button asChild>
+                    <Link to="/ask">Ask a Question</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredQuestions.map((question) => (
+              <QuestionCard key={question.id} question={{
+                ...question,
+                author: {
+                  ...question.author,
+                  reputation: 0 // Default reputation for unanswered questions display
+                }
+              }} showBounty={true} />
+            ))
+          )}
+        </div>
+
+        {/* Load More */}
+        {filteredQuestions.length > 0 && (
+          <div className="text-center mt-8">
+            <Button variant="outline" onClick={() => {
+              // In a real app, this would load more questions
+              console.log('Load more questions');
+            }}>
+              Load More Questions
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default UnansweredQuestions;

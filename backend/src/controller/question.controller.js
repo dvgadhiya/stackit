@@ -26,8 +26,20 @@ export const createQuestion = async (req, res) => {
 
 // Get all questions
 export const getAllQuestions = async (req, res) => {
-  const questions = await Question.find().populate('user').populate('tags');
-  res.json(questions);
+  const questions = await Question.find()
+    .populate({ path: 'user', select: 'username reputation' })
+    .populate('tags');
+  // Map user to author for frontend compatibility
+  const mapped = questions.map(q => {
+    const qObj = q.toObject();
+    qObj.author = {
+      username: qObj.user?.username || 'Unknown',
+      reputation: qObj.user?.reputation || 0
+    };
+    delete qObj.user;
+    return qObj;
+  });
+  res.json(mapped);
 }
 
 // Edit question (user or admin)
@@ -95,4 +107,22 @@ export const deleteQuestion = async (req, res) => {
       res.status(500).json({ error: err.message });
     }
   }
-  
+export const voteUpdate = async (req, res) => {
+  try {
+    const { type } = req.body;
+    const { id } = req.params;
+    const question = await Question.findById(id);
+    if (!question) return res.status(404).json({ error: "Question not found" });
+    if (type === "up") {
+      question.votes = (question.votes || 0) + 1;
+    } else if (type === "down") {
+      question.votes = (question.votes || 0) - 1;
+    } else {
+      return res.status(400).json({ error: "Invalid vote type" });
+    }
+    await question.save();
+    res.json({ votes: question.votes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}

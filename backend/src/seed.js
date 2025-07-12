@@ -2,8 +2,6 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { faker } from "@faker-js/faker";
 import bcrypt from 'bcryptjs';
-
-
 import User from "./models/User.model.js";
 import Tag from "./models/Tag.model.js";
 import Question from "./models/Question.model.js";
@@ -23,8 +21,9 @@ const NUM_COMMENTS = 60;
 
 async function seed() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
 
+    console.log("Connecting to DB:", process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected to DB. Clearing collections...");
 
     await User.deleteMany({});
@@ -169,32 +168,13 @@ console.log(`Created ${questions.length} questions.`);
 
 console.log(`Created ${NUM_COMMENTS} comments and mentions.`);
 
-    console.log("Seeding complete!");
 
+    console.log("Seeding complete!");
     process.exit(0);
   } catch (err) {
-    console.error(err);
+    console.error("Seeding error:", err);
     process.exit(1);
   }
-
-  console.log("Creating mentions...");
-
-const mentions = [];
-
-for (let i = 0; i < NUM_MENTIONS; i++) {
-  const user = faker.helpers.arrayElement(users);
-  const comment = faker.helpers.arrayElement(comments);
-
-  const mention = await Mention.create({
-    user: user._id,
-    sourceId: comment._id,
-    sourceType: "Comment"
-  });
-
-  mentions.push(mention);
-}
-
-console.log(`Created ${mentions.length} mentions.`);
 }
 
 
