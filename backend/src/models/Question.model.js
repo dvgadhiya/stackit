@@ -7,4 +7,4 @@ const questionSchema = new mongoose.Schema({
   tags: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }]
 }, { timestamps: true });
 
-export default mongoose.model('Question', questionSchema);
+export default mongoose.models.Question || mongoose.model("Question", questionSchema);
