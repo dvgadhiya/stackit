@@ -27,6 +27,7 @@ export const verifyToken = async (req, res, next) => {
     }
 
     // Add user info to request
+    req.userId = decoded.id;
     req.user = {
       id: decoded.id,
       username: decoded.username,

@@ -1,5 +1,5 @@
-import Answer from "../models/answer.model.js";
-import Question from "../models/question.model.js";
+import Answer from "../models/Answer.model.js";
+import Question from "../models/Question.model.js";
 import mongoose from "mongoose";
 
 export const createAnswer = async (req, res) => {
