@@ -107,22 +107,49 @@ export const deleteQuestion = async (req, res) => {
       res.status(500).json({ error: err.message });
     }
   }
-export const voteUpdate = async (req, res) => {
+
+export const voteQuestion = async (req, res) => {
+  const questionId = req.params.id;
+  const { type } = req.body; // 'up' or 'down'
+  const userId = req.user?.id || req.userId;
+
   try {
-    const { type } = req.body;
-    const { id } = req.params;
-    const question = await Question.findById(id);
+    const question = await Question.findById(questionId);
     if (!question) return res.status(404).json({ error: "Question not found" });
+
+    // Remove user from both vote arrays to ensure single vote
+    question.upvotes.pull(userId);
+    question.downvotes.pull(userId);
+
+    // Add vote
     if (type === "up") {
-      question.votes = (question.votes || 0) + 1;
+      question.upvotes.push(userId);
     } else if (type === "down") {
-      question.votes = (question.votes || 0) - 1;
-    } else {
-      return res.status(400).json({ error: "Invalid vote type" });
+      question.downvotes.push(userId);
     }
-    await question.save();
-    res.json({ votes: question.votes });
+
+    await question.save(); // Make sure the vote is persisted
+
+    // Reload or use updated object directly
+    const updatedQuestion = await Question.findById(questionId);
+
+    res.json({
+      message: "Vote updated",
+      votes: updatedQuestion.upvotes.length - updatedQuestion.downvotes.length,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
-}
+};
+
+// Get current user's questions
+export const getMyQuestions = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.userId;
+    const questions = await Question.find({ user: userId }).populate('tags');
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+};

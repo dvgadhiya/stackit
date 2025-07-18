@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
+import { useAuth } from "@/context/auth"; // <-- import useAuth
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -13,6 +13,7 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth(); // <-- get login from context
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,15 +27,7 @@ const Login = () => {
     }
     setIsSubmitting(true);
     try {
-      const res = await axios.post("http://localhost:3000/api/auth/login", {
-        email,
-        password,
-      }, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        withCredentials: true,
-      });
+      await login(email, password); // <-- use context login
       toast({
         title: "Login successful!",
         description: "Welcome back!",

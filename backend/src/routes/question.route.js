@@ -1,5 +1,5 @@
 import express from 'express';
-import { createQuestion, getAllQuestions, voteUpdate, editQuestion, deleteQuestion } from '../controller/question.controller.js';
+import { createQuestion, getAllQuestions, voteQuestion, editQuestion, deleteQuestion } from '../controller/question.controller.js';
 
 export const QuestionRoutes = express.Router();
 
@@ -15,4 +15,4 @@ QuestionRoutes.put('/:id', editQuestion);
 // delete questions
 QuestionRoutes.delete('/:id', deleteQuestion);
 
-QuestionRoutes.post("/:id/vote", voteUpdate);
+QuestionRoutes.post("/:id/vote", voteQuestion);

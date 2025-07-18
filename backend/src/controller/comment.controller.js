@@ -59,7 +59,6 @@ export const createComment = async (req, res) => {
   }
 };
 
-
 export const updateComment = async (req, res) => {
   try {
     const { commentId } = req.params;
@@ -115,6 +114,39 @@ export const getCommentsByAnswer = async (req, res) => {
       .sort({ createdAt: -1 });
 
     return res.json(comments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const voteComment = async (req, res) => {
+  const commentId = req.params.id;
+  const { type } = req.body; // 'up' or 'down'
+  const userId = req.user?.id || req.userId;
+
+  try {
+    const comment = await Comment.findById(commentId);
+    if (!comment) return res.status(404).json({ error: "Comment not found" });
+
+    // Remove previous vote
+    comment.upvotes.pull(userId);
+    comment.downvotes.pull(userId);
+
+    // Add new vote
+    if (type === "up") {
+      comment.upvotes.push(userId);
+    } else if (type === "down") {
+      comment.downvotes.push(userId);
+    }
+
+    await comment.save();
+    const updatedComment = await Comment.findById(commentId);
+
+    res.json({
+      message: "Vote updated",
+      votes: updatedComment.upvotes.length - updatedComment.downvotes.length,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

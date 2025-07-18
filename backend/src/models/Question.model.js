@@ -5,7 +5,8 @@ const questionSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   tags: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
-  votes: { type: Number, default: 0 }
+  upvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: [] }],
+  downvotes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User',default: []  }],
 }, { timestamps: true });
 
 export default mongoose.models.Question || mongoose.model("Question", questionSchema);

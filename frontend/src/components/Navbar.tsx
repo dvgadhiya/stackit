@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/auth"; // <-- make sure this path matches your project
 
 const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Mock auth state
+  const { user, logout } = useAuth();
+  const isLoggedIn = !!user;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,8 +20,8 @@ const Navbar = () => {
     }
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
