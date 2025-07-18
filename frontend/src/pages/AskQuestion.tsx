@@ -68,10 +68,11 @@ const AskQuestion = () => {
     setIsSubmitting(true);
 
     try {
+
       const res = await axios.post("http://localhost:3000/api/question", {
         title,
         description,
-        tags,
+        tagNames: tags,
       }, {
         headers: {
           "Content-Type": "application/json",
@@ -80,12 +81,22 @@ const AskQuestion = () => {
         }
       });
 
-      toast({
-        title: "Question posted!",
-        description: "Your question has been successfully posted to the community.",
-      });
+      const questionId = res.data?.question?._id;
 
-      navigate("/");
+      if (questionId) {
+        toast({
+          title: "Question posted!",
+          description: `Your question has been successfully posted to the community. (ID: ${questionId})`,
+        });
+        navigate(`/questions/${questionId}`);
+      } else {
+        toast({
+          title: "Error",
+          description: "Question posted but no ID returned. Redirecting to home.",
+          variant: "destructive"
+        });
+        navigate("/");
+      }
 
     } catch (error: any) {
       toast({

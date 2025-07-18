@@ -1,14 +1,18 @@
 import express from "express";
+
+import { verifyToken } from "../middleware/auth.middleware.js";
 import {
   createAnswer,
   updateAnswer,
   deleteAnswer,
-  voteAnswer
+  voteAnswer,
+  getMyAnswers
 } from "../controller/answer.controller.js";
 
-import { verifyToken } from "../middleware/auth.middleware.js";
-
 const router = express.Router();
+
+// Get answers for the logged-in user
+router.get('/my', verifyToken, getMyAnswers);
 
 // Create an answer
 router.post("/question/:questionId", verifyToken, createAnswer);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/context/auth";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Bell, User, ChevronDown, MessageSquare, Tag, Users, TrendingUp, Home, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ const Navbar = () => {
               </Link>
             </Button>
 
-            {isLoggedIn ? (
+            {user ? (
               <>
                 {/* Notifications */}
                 <DropdownMenu>
@@ -129,6 +130,7 @@ const Navbar = () => {
                       <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                       </div>
+                      <span className="font-medium text-sm max-w-[100px] truncate">{user.username}</span>
                       <ChevronDown className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>

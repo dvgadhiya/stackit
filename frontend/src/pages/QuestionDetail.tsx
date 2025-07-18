@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowUp, ArrowDown, MessageSquare, Eye, Clock, User, Check, Star, Flag, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,116 +8,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-// Mock data - replace with API calls
-const mockQuestion = {
-  id: "1",
-  title: "How to implement useEffect cleanup in React?",
-  content: `I'm working on a React component that fetches data from an API, but I'm getting memory leaks when the component unmounts. Here's my current code:
+import axios from "axios";
 
-\`\`\`javascript
-function MyComponent() {
-  const [data, setData] = useState(null);
-  
-  useEffect(() => {
-    fetchData().then(setData);
-  }, []);
-  
-  return <div>{data && data.name}</div>;
-}
-\`\`\`
 
-How do I properly clean up the effect to prevent memory leaks?`,
-  author: {
-    name: "DevCoder",
-    reputation: 1543,
-    avatar: ""
-  },
-  tags: ["react", "javascript", "hooks", "useeffect"],
-  votes: 12,
-  views: 156,
-  createdAt: "2024-01-15T10:30:00Z",
-  answers: [
-    {
-      id: "1",
-      content: `You need to clean up your effect to prevent memory leaks. Here's the correct way:
 
-\`\`\`javascript
-function MyComponent() {
-  const [data, setData] = useState(null);
-  
-  useEffect(() => {
-    let isMounted = true;
-    
-    fetchData().then(result => {
-      if (isMounted) {
-        setData(result);
-      }
-    });
-    
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-  
-  return <div>{data && data.name}</div>;
-}
-\`\`\`
-
-The cleanup function sets \`isMounted\` to false, preventing state updates after unmount.`,
-      author: {
-        name: "ReactExpert",
-        reputation: 3421
-      },
-      votes: 8,
-      createdAt: "2024-01-15T11:15:00Z",
-      isAccepted: true,
-      comments: [
-        {
-          id: "1",
-          content: "Great explanation! This solved my memory leak issue.",
-          author: { name: "DevCoder", reputation: 1543 },
-          createdAt: "2024-01-15T12:00:00Z"
-        }
-      ]
-    },
-    {
-      id: "2", 
-      content: `You can also use AbortController for fetch requests:
-
-\`\`\`javascript
-useEffect(() => {
-  const controller = new AbortController();
-  
-  fetch('/api/data', { signal: controller.signal })
-    .then(response => response.json())
-    .then(setData)
-    .catch(err => {
-      if (err.name !== 'AbortError') {
-        console.error(err);
-      }
-    });
-    
-  return () => controller.abort();
-}, []);
-\`\`\``,
-      author: {
-        name: "JSGuru", 
-        reputation: 2156
-      },
-      votes: 5,
-      createdAt: "2024-01-15T13:30:00Z",
-      comments: []
-    }
-  ]
-};
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const QuestionDetail = () => {
   const { id } = useParams();
-  const [question] = useState(mockQuestion);
+  const [question, setQuestion] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [newAnswer, setNewAnswer] = useState("");
+  const [postingAnswer, setPostingAnswer] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [commentingOn, setCommentingOn] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchQuestion = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await axios.get(`${API_BASE}/questions/${id}`);
+        setQuestion(res.data.question);
+      } catch (err: any) {
+        setError(err?.response?.data?.message || "Failed to load question.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (id) fetchQuestion();
+  }, [id]);
 
   const timeAgo = (date: string) => {
     const now = new Date();
@@ -131,40 +53,84 @@ const QuestionDetail = () => {
     return `${Math.floor(diffInDays / 7)}w ago`;
   };
 
-  const handleVote = (type: 'up' | 'down', targetType: 'question' | 'answer', targetId?: string) => {
-    toast({
-      title: `${type === 'up' ? 'Upvoted' : 'Downvoted'}`,
-      description: `You ${type === 'up' ? 'upvoted' : 'downvoted'} this ${targetType}.`
-    });
+
+  // Voting, Accept, Answer, Comment handlers (API integration)
+  const handleVote = async (type: 'up' | 'down', targetType: 'question' | 'answer', targetId?: string) => {
+    try {
+      if (targetType === 'question') {
+        await axios.post(`${API_BASE}/question/${id}/vote`, { type });
+      } else if (targetType === 'answer' && targetId) {
+        await axios.post(`${API_BASE}/answers/${targetId}/vote`, { type });
+      }
+      toast({
+        title: `${type === 'up' ? 'Upvoted' : 'Downvoted'}`,
+        description: `You ${type === 'up' ? 'upvoted' : 'downvoted'} this ${targetType}.`
+      });
+      // Refresh question
+      const res = await axios.get(`${API_BASE}/questions/${id}`);
+      setQuestion(res.data.question);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.response?.data?.message || "Failed to vote." });
+    }
   };
 
-  const handleAcceptAnswer = (answerId: string) => {
-    toast({
-      title: "Answer accepted",
-      description: "This answer has been marked as the solution."
-    });
+  const handleAcceptAnswer = async (answerId: string) => {
+    try {
+      await axios.post(`${API_BASE}/answers/${answerId}/accept`);
+      toast({ title: "Answer accepted", description: "This answer has been marked as the solution." });
+      // Refresh question
+      const res = await axios.get(`${API_BASE}/questions/${id}`);
+      setQuestion(res.data.question);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.response?.data?.message || "Failed to accept answer." });
+    }
   };
 
-  const submitAnswer = () => {
+  const submitAnswer = async () => {
     if (!newAnswer.trim()) return;
-    
-    toast({
-      title: "Answer posted!",
-      description: "Your answer has been added to the question."
-    });
-    setNewAnswer("");
+    setPostingAnswer(true);
+    try {
+      await axios.post(`${API_BASE}/answers`, { questionId: id, content: newAnswer });
+      toast({ title: "Answer posted!", description: "Your answer has been added to the question." });
+      setNewAnswer("");
+      // Refresh question
+      const res = await axios.get(`${API_BASE}/questions/${id}`);
+      setQuestion(res.data.question);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.response?.data?.message || "Failed to post answer." });
+    } finally {
+      setPostingAnswer(false);
+    }
   };
 
-  const submitComment = (parentType: 'question' | 'answer', parentId: string) => {
+  const submitComment = async (parentType: 'question' | 'answer', parentId: string) => {
     if (!newComment.trim()) return;
-    
-    toast({
-      title: "Comment added!",
-      description: "Your comment has been posted."
-    });
-    setNewComment("");
-    setCommentingOn(null);
+    try {
+      if (parentType === 'question') {
+        await axios.post(`${API_BASE}/questions/${id}/comments`, { content: newComment });
+      } else if (parentType === 'answer') {
+        await axios.post(`${API_BASE}/answers/${parentId}/comments`, { content: newComment });
+      }
+      toast({ title: "Comment added!", description: "Your comment has been posted." });
+      setNewComment("");
+      setCommentingOn(null);
+      // Refresh question
+      const res = await axios.get(`${API_BASE}/question/${id}`);
+      setQuestion(res.data.question);
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.response?.data?.message || "Failed to post comment." });
+    }
   };
+
+  if (loading) {
+    return <div className="max-w-5xl mx-auto px-4 py-8 text-center text-lg">Loading...</div>;
+  }
+  if (error) {
+    return <div className="max-w-5xl mx-auto px-4 py-8 text-center text-destructive">{error}</div>;
+  }
+  if (!question) {
+    return <div className="max-w-5xl mx-auto px-4 py-8 text-center text-destructive">Question not found.</div>;
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -206,7 +172,7 @@ const QuestionDetail = () => {
 
               {/* Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
-                {question.tags.map((tag) => (
+                {question.tags?.map((tag: string) => (
                   <Link key={tag} to={`/tags/${tag}`}>
                     <Badge variant="secondary" className="hover:bg-primary hover:text-primary-foreground transition-colors">
                       {tag}
@@ -233,8 +199,8 @@ const QuestionDetail = () => {
                     <User className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="font-medium">{question.author.name}</div>
-                    <div className="text-primary font-semibold">{question.author.reputation}</div>
+                    <div className="font-medium">{question.author?.name || question.author?.username || "User"}</div>
+                    <div className="text-primary font-semibold">{question.author?.reputation ?? 0}</div>
                   </div>
                 </div>
               </div>
@@ -250,7 +216,19 @@ const QuestionDetail = () => {
                     <MessageSquare className="w-4 h-4 mr-1" />
                     Add comment
                   </Button>
-                  
+                  {/* Show comments if present */}
+                  {question.comments?.length > 0 && (
+                    <div className="space-y-2 mb-2 pl-4 border-l-2 border-muted">
+                      {question.comments.map((comment: any) => (
+                        <div key={comment._id || comment.id} className="text-sm">
+                          <span className="text-foreground">{comment.content}</span>
+                          <span className="text-muted-foreground ml-2">
+                            — {comment.author?.name || comment.author?.username || "User"} {timeAgo(comment.createdAt)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {commentingOn === 'question' && (
                     <div className="space-y-2">
                       <Textarea
@@ -260,7 +238,7 @@ const QuestionDetail = () => {
                         rows={2}
                       />
                       <div className="flex space-x-2">
-                        <Button size="sm" onClick={() => submitComment('question', question.id)}>
+                        <Button size="sm" onClick={() => submitComment('question', question._id || question.id)}>
                           Post Comment
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => setCommentingOn(null)}>
@@ -278,13 +256,13 @@ const QuestionDetail = () => {
 
       {/* Answers Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold">{question.answers.length} Answer{question.answers.length !== 1 ? 's' : ''}</h2>
+        <h2 className="text-xl font-bold">{question.answers?.length || 0} Answer{question.answers?.length !== 1 ? 's' : ''}</h2>
       </div>
 
       {/* Answers */}
       <div className="space-y-6 mb-8">
-        {question.answers.map((answer) => (
-          <Card key={answer.id} className={cn("border-l-4", answer.isAccepted && "border-l-success")}>
+        {question.answers?.map((answer: any) => (
+          <Card key={answer._id || answer.id} className={cn("border-l-4", answer.isAccepted && "border-l-success")}>...
             <CardContent className="p-6">
               <div className="flex gap-6">
                 {/* Voting Section */}
@@ -352,13 +330,13 @@ const QuestionDetail = () => {
                   </div>
 
                   {/* Comments */}
-                  {answer.comments.length > 0 && (
+                  {answer.comments?.length > 0 && (
                     <div className="space-y-2 mb-4 pl-4 border-l-2 border-muted">
-                      {answer.comments.map((comment) => (
-                        <div key={comment.id} className="text-sm">
+                      {answer.comments.map((comment: any) => (
+                        <div key={comment._id || comment.id} className="text-sm">
                           <span className="text-foreground">{comment.content}</span>
                           <span className="text-muted-foreground ml-2">
-                            — {comment.author.name} {timeAgo(comment.createdAt)}
+                            — {comment.author?.name || comment.author?.username || "User"} {timeAgo(comment.createdAt)}
                           </span>
                         </div>
                       ))}
@@ -368,13 +346,13 @@ const QuestionDetail = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setCommentingOn(commentingOn === answer.id ? null : answer.id)}
+                    onClick={() => setCommentingOn(commentingOn === (answer._id || answer.id) ? null : (answer._id || answer.id))}
                   >
                     <MessageSquare className="w-4 h-4 mr-1" />
                     Add comment
                   </Button>
                   
-                  {commentingOn === answer.id && (
+                  {commentingOn === (answer._id || answer.id) && (
                     <div className="mt-3 space-y-2">
                       <Textarea
                         placeholder="Add a comment..."
@@ -383,7 +361,7 @@ const QuestionDetail = () => {
                         rows={2}
                       />
                       <div className="flex space-x-2">
-                        <Button size="sm" onClick={() => submitComment('answer', answer.id)}>
+                        <Button size="sm" onClick={() => submitComment('answer', answer._id || answer.id)}>
                           Post Comment
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => setCommentingOn(null)}>
@@ -410,10 +388,11 @@ const QuestionDetail = () => {
               onChange={(e) => setNewAnswer(e.target.value)}
               rows={8}
               className="resize-none"
+              disabled={postingAnswer}
             />
             <div className="flex space-x-4">
-              <Button onClick={submitAnswer} disabled={!newAnswer.trim()}>
-                Post Answer
+              <Button onClick={submitAnswer} disabled={!newAnswer.trim() || postingAnswer}>
+                {postingAnswer ? "Posting..." : "Post Answer"}
               </Button>
               <Button variant="outline">
                 Preview

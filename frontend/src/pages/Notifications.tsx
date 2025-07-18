@@ -20,7 +20,7 @@ interface Notification {
   userId?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -134,9 +134,9 @@ const Notifications = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center py-8">
-                  <MessageSquare className="w-12 h-12 text-destructive mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Error</h3>
-                  <p className="text-muted-foreground">{error}</p>
+                  <MessageSquare className="w-12 h-12 text-red-500 mx-auto mb-4 animate-bounce" />
+                  <h3 className="text-lg font-semibold mb-2 text-red-600">Error loading notifications</h3>
+                  <p className="text-red-500 font-medium">{error}</p>
                 </div>
               </CardContent>
             </Card>

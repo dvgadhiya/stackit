@@ -1,3 +1,20 @@
+// Get answers for the logged-in user
+export const getMyAnswers = async (req, res) => {
+  try {
+    const answers = await Answer.find({ author: req.userId })
+      .populate({ path: 'question', select: 'title' });
+    const mapped = answers.map(a => {
+      const aObj = a.toObject();
+      aObj.questionTitle = aObj.question?.title || '';
+      aObj.questionId = aObj.question?._id?.toString() || '';
+      delete aObj.question;
+      return aObj;
+    });
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 import Answer from "../models/Answer.model.js";
 import Question from "../models/Question.model.js";
 
